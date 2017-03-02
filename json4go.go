@@ -15,8 +15,10 @@ type Json struct {
 }
 
 func (this *Json) GetJson(key string) *Json {
-	p := this.m[key].(*Json)
-	return p
+	if p, ok := this.m[key].(*Json); ok {
+		return p
+	}
+	return NewJson()
 }
 
 func (this *Json) GetMap() map[string]interface{} {
@@ -29,21 +31,24 @@ func (this *Json) GetJsonArray(key string) *JsonArray {
 }
 
 func (this *Json) GetString(key string) string {
-	v := this.m[key]
-	var r string
-	switch v.(type) {
-	case string:
-		r = v.(string)
-	case float64:
-		r = strconv.FormatFloat(v.(float64), 'f', -1, 64)
-	case bool:
-		r = strconv.FormatBool(v.(bool))
-	case *Json:
-		r = v.(*Json).ToString()
-	case *JsonArray:
-		r = v.(*JsonArray).ToString()
+	if v, ok := this.m[key]; ok {
+
+		var r string
+		switch v.(type) {
+		case string:
+			r = v.(string)
+		case float64:
+			r = strconv.FormatFloat(v.(float64), 'f', -1, 64)
+		case bool:
+			r = strconv.FormatBool(v.(bool))
+		case *Json:
+			r = v.(*Json).ToString()
+		case *JsonArray:
+			r = v.(*JsonArray).ToString()
+		}
+		return r
 	}
-	return r
+	return ""
 }
 
 func (this *Json) GetFloat(key string) float64 {
@@ -58,9 +63,9 @@ func (this *Json) GetFloat(key string) float64 {
 	return r
 }
 
-func (this *Json) GetInt(key string) int64 {
+func (this *Json) GetInt(key string) int {
 	r := this.GetFloat(key)
-	return int64(r)
+	return int(r)
 }
 
 func (this *Json) GetBool(key string) bool {
@@ -141,8 +146,11 @@ type JsonArray struct {
 }
 
 func (this *JsonArray) GetJson(index int) *Json {
-	p := this.arr[index].(*Json)
-	return p
+
+	if p, ok := this.arr[index].(*Json); ok {
+		return p
+	}
+	return NewJson()
 }
 
 func (this *JsonArray) GetArray() []interface{} {
@@ -184,9 +192,9 @@ func (this *JsonArray) GetFloat(index int) float64 {
 	return r
 }
 
-func (this *JsonArray) GetInt(index int) int64 {
+func (this *JsonArray) GetInt(index int) int {
 	r := this.GetFloat(index)
-	return int64(r)
+	return int(r)
 }
 
 func (this *JsonArray) GetBool(index int) bool {
@@ -228,9 +236,14 @@ func (this *JsonArray) ToString() string {
 			sb = append(sb, v.(string)...)
 			sb = append(sb, '"')
 		case *JsonArray:
+
 			sb = append(sb, (v.(*JsonArray)).ToString()...)
 		case float64:
+			// fmt.Println("****", v)
 			sb = append(sb, strconv.FormatFloat(v.(float64), 'f', -1, 64)...)
+		case int:
+			// fmt.Println("****", v)
+			sb = append(sb, strconv.Itoa(v.(int))...)
 		case bool:
 			sb = append(sb, strconv.FormatBool(v.(bool))...)
 		}
@@ -245,6 +258,10 @@ func (this *JsonArray) Add(value interface{}) {
 
 func (this *JsonArray) Del(index int) {
 	this.arr = append(this.arr[:index], this.arr[index+1:]...)
+}
+
+func (this *JsonArray) Set(key int, value interface{}) {
+	this.arr[key] = value
 }
 
 func (this *JsonArray) GetLength() int {
